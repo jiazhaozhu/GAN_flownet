@@ -13,6 +13,10 @@ You can run:
 `python test/flow_test.py`
 
 # Tensorboard
+[Loss_dis](https://github.com/jiazhaozhu/GAN_flownet/blob/master/checkpoints/Loss_dis.jpg)
+[Loss_ge](https://github.com/jiazhaozhu/GAN_flownet/blob/master/checkpoints/Loss_ge.jpg)
+[Loss_squ_ge](https://github.com/jiazhaozhu/GAN_flownet/blob/master/checkpoints/Loss_squ_ge.jpg)
+[Loss_cro_ge](https://github.com/jiazhaozhu/GAN_flownet/blob/master/checkpoints/Loss_cro_ge.jpg)
 
 # Debug
 You can debug:
