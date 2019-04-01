@@ -25,3 +25,9 @@ You can use tensorboard to debug:
 `python train/flow_train.py --tensorboard_debug True --tensorboard_debug_address 10.11.11.11:6064`
 
 ![alt tag](https://github.com/jiazhaozhu/GAN_flownet/blob/master/checkpoints/tensorboard_debug.jpg)
+
+# Results
+
+![alt tag](https://github.com/jiazhaozhu/GAN_flownet/blob/master/test/sample_1.png)
+![alt tag](https://github.com/jiazhaozhu/GAN_flownet/blob/master/test/sample_2.png)
+![alt tag](https://github.com/jiazhaozhu/GAN_flownet/blob/master/test/sample_3.png)
