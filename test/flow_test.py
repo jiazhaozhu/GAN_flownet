@@ -99,7 +99,7 @@ def evaluate():
 
         # display it
         plt.figure()
-        plt.imshow(sflow_plot)
+        plt.imshow(sflow_plot,interpolation='gaussian',cmap=plt.cm.jet)
         plt.colorbar()
         plt.savefig('./data/GAN_test/'+ run.split('\\')[-2] + '.png' )
         # plt.show()
