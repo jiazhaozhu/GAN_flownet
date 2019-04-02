@@ -72,89 +72,14 @@ def conv_layer(inputs, kernel_size, stride, num_features, idx, nonlinearity=None
             conv_biased = nonlinearity(conv_biased)
         return conv_biased
 
-
-# def transpose_conv_layer(inputs, kernel_size, stride, num_features, idx, nonlinearity=None):
-#     with tf.variable_scope('Di_{0}_trans_conv'.format(idx)) as scope:
-#         input_channels = int(inputs.get_shape()[3])
-#
-#         weights = _variable('weights', shape=[kernel_size, kernel_size, num_features, input_channels],
-#                             initializer=tf.contrib.layers.xavier_initializer_conv2d())
-#         biases = _variable('biases', [num_features], initializer=tf.contrib.layers.xavier_initializer_conv2d())
-#         batch_size = tf.shape(inputs)[0]
-#         output_shape = tf.stack(
-#             [tf.shape(inputs)[0], tf.shape(inputs)[1] * stride, tf.shape(inputs)[2] * stride, num_features])
-#         conv = tf.nn.conv2d_transpose(inputs, weights, output_shape, strides=[1, stride, stride, 1], padding='SAME')
-#         conv_biased = tf.nn.bias_add(conv, biases)
-#         if nonlinearity is not None:
-#             conv_biased = nonlinearity(conv_biased)
-#
-#         # reshape
-#         shape = int_shape(inputs)
-#         conv_biased = tf.reshape(conv_biased, [shape[0], shape[1] * stride, shape[2] * stride, num_features])
-#
-#         return conv_biased
-
-
-def fc_layer(inputs, hiddens, idx, nonlinearity=None, flat=False):
-    with tf.variable_scope('Dis_{0}_fc'.format(idx)) as scope:
-        input_shape = inputs.get_shape().as_list()
-        if flat:
-            dim = input_shape[1] * input_shape[2] * input_shape[3]
-            inputs_processed = tf.reshape(inputs, [-1, dim])
-        else:
-            dim = input_shape[1]
-            inputs_processed = inputs
-
-        weights = _variable('weights', shape=[dim, hiddens], initializer=tf.contrib.layers.xavier_initializer())
-        biases = _variable('biases', [hiddens], initializer=tf.contrib.layers.xavier_initializer())
-        output_biased = tf.add(tf.matmul(inputs_processed, weights), biases, name=str(idx) + '_fc')
-        if nonlinearity is not None:
-            output_biased = nonlinearity(ouput_biased)
-        return output_biased
-
-
-def nin(x, num_units, idx):
-    """ a network in network layer (1x1 CONV) """
-    s = int_shape(x)
-    x = tf.reshape(x, [np.prod(s[:-1]), s[-1]])
-    x = fc_layer(x, num_units, idx)
-    return tf.reshape(x, s[:-1] + [num_units])
-
-
-def _phase_shift(I, r):
-    bsize, a, b, c = I.get_shape().as_list()
-    bsize = tf.shape(I)[0]  # Handling Dimension(None) type for undefined batch dim
-    X = tf.reshape(I, (bsize, a, b, r, r))
-    X = tf.transpose(X, (0, 1, 2, 4, 3))  # bsize, a, b, 1, 1
-    X = tf.split(axis=1, num_or_size_splits=a, value=X)  # a, [bsize, b, r, r]
-    X = tf.concat(axis=2, values=[tf.squeeze(x) for x in X])  # bsize, b, a*r, r
-    X = tf.split(axis=1, num_or_size_splits=b, value=X)  # b, [bsize, a*r, r]
-    X = tf.concat(axis=2, values=[tf.squeeze(x) for x in X])  # bsize, a*r, b*r
-    return tf.reshape(X, (bsize, a * r, b * r, 1))
-
-
-def PS(X, r, depth):
-    Xc = tf.split(axis=3, num_or_size_splits=depth, value=X)
-    X = tf.concat(axis=3, values=[_phase_shift(x, r) for x in Xc])
-    return X
-
-
 def res_block(x, a=None, filter_size=16, nonlinearity=concat_elu, keep_p=1.0, stride=1, gated=False, name="resnet"):
     orig_x = x
     orig_x_int_shape = int_shape(x)
     if orig_x_int_shape[3] == 1:
-        print("***********************")
         x_1 = conv_layer(x, 3, stride, filter_size, name + '_conv_1')
     else:
-        # print("***********************")
         x_1 = conv_layer(nonlinearity(x), 3, stride, filter_size, name + '_conv_1')
-    if a is not None:
-        shape_a = int_shape(a)
-        shape_x_1 = int_shape(x_1)
-        a = tf.pad(
-            a, [[0, 0], [0, shape_x_1[1] - shape_a[1]], [0, shape_x_1[2] - shape_a[2]],
-                [0, 0]])
-        x_1 += nin(nonlinearity(a), filter_size, name + '_nin')
+    
     x_1 = nonlinearity(x_1)
     if keep_p < 1.0:
         x_1 = tf.nn.dropout(x_1, keep_prob=keep_p)
@@ -193,85 +118,24 @@ def dis(inputs,target, nr_res_blocks=1, keep_prob=1.0, nonlinearity_name='concat
     # res_1
     x = tf.concat([inputs,target],axis=3)
 
-    # for i in range(nr_res_blocks):
-    #     x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                   name="resnet_1_h" + str(i))
     # res_2
     a.append(x)
     filter_size = 2 * filter_size
     x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, stride=2, gated=gated,
                   name="resnet_2_downsample")
-    # for i in range(nr_res_blocks):
-    #     x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                   name="resnet_2_" + str(i))
+
     # res_3
     a.append(x)
     filter_size = 2 * filter_size
     x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, stride=2, gated=gated,
                   name="resnet_3_downsample")
-    # for i in range(nr_res_blocks):
-    #     x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                   name="resnet_3_" + str(i))
+
     # res_4
     a.append(x)
     filter_size = 2 * filter_size
     x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, stride=2, gated=gated,
                   name="resnet_4_downsample")
-    # for i in range(nr_res_blocks):
-    #     x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                   name="resnet_4_" + str(i))
-    # res_4
-    # a.append(x)
-    # filter_size = 2 * filter_size
-    # x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, stride=2, gated=gated,
-    #               name="resnet_5_downsample")
-    # for i in range(nr_res_blocks):
-    #     x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                   name="resnet_5_" + str(i))
-    # # res_up_1
-    # filter_size = int(filter_size / 2)
-    # x = transpose_conv_layer(x, 3, 2, filter_size, "up_conv_1")
-    # # x = PS(x,2,512)
-    # for i in range(nr_res_blocks):
-    #     if i == 0:
-    #         x = res_block(x, a=a[-1], filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                       name="resnet_up_1_" + str(i))
-    #     else:
-    #         x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                       name="resnet_up_1_" + str(i))
-    # # res_up_1
-    # filter_size = int(filter_size / 2)
-    # x = transpose_conv_layer(x, 3, 2, filter_size, "up_conv_2")
-    # # x = PS(x,2,512)
-    # for i in range(nr_res_blocks):
-    #     if i == 0:
-    #         x = res_block(x, a=a[-2], filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                       name="resnet_up_2_" + str(i))
-    #     else:
-    #         x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                       name="resnet_up_2_" + str(i))
-    #
-    # filter_size = int(filter_size / 2)
-    # x = transpose_conv_layer(x, 3, 2, filter_size, "up_conv_3")
-    # # x = PS(x,2,512)
-    # for i in range(nr_res_blocks):
-    #     if i == 0:
-    #         x = res_block(x, a=a[-3], filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                       name="resnet_up_3_" + str(i))
-    #     else:
-    #         x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                       name="resnet_up_3_" + str(i))
-    #
-    # filter_size = int(filter_size / 2)
-    # x = transpose_conv_layer(x, 3, 2, filter_size, "up_conv_4")
-    # x = PS(x,2,512)
-    # for i in range(nr_res_blocks):
-    #     if i == 0:
-    #         x = res_block(x, a=a[-4], filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                       name="resnet_up_4_" + str(i))
-    #     else:
-    #         x = res_block(x, filter_size=filter_size, nonlinearity=nonlinearity, keep_p=keep_prob, gated=gated,
-    #                       name="resnet_up_4_" + str(i))
+
 
     x = conv_layer(x, 5, 1, 1, "last_conv")
     x = tf.nn.sigmoid(x)
