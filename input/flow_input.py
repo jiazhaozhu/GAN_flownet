@@ -1,3 +1,5 @@
+"""this file is from https://github.com/loliverhennigh/Steady-State-Flow-With-Neural-Nets/blob/master/input/flow_input.py,
+and I use tf.data in flow_train.py to replace this script function"""
 
 import os
 import numpy as np
