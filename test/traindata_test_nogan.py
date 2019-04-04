@@ -80,7 +80,7 @@ def train():
         loss_dis = tf.reduce_mean(-(tf.log(dis_true + EPS) + tf.log(1 - dis_fake + EPS)))
 
         em_loss_op = ema.apply([loss_cro_ge, loss_dis])
-        # ema.average之前一定有ema.apply命令
+     
         loss_dis_ema = ema.average(loss_dis)
         loss_cro_ge_ema = ema.average(loss_cro_ge)
         tf.summary.scalar("loss_cro_ge", loss_cro_ge_ema)
@@ -100,10 +100,7 @@ def train():
 
         # Build a saver
         saver = tf.train.Saver(tf.global_variables())
-        # for i, variable in enumerate(variables):
-        #  print '----------------------------------------------'
-        #  print variable.name[:variable.name.index(':')]
-
+   
         # Summary op
         summary_op = tf.summary.merge_all()
 
@@ -116,7 +113,7 @@ def train():
         # init if this is the very time training
         sess.run(init)
 
-        # init from checkpoint
+        # init from GAN checkpoint to get the Discriminator and use Discriminator to evaluate the result of GAN and noGAN 
         saver_restore = tf.train.Saver(variables)
         ckpt = tf.train.get_checkpoint_state(TRAIN_DIR)
         if ckpt is not None:
@@ -128,7 +125,7 @@ def train():
                 tf.gfile.MakeDirs(TRAIN_DIR)
                 print("there was a problem using variables in checkpoint, random init will be used instead")
 
-
+        # init from GAN checkpoint or noGAN to evaluate
         variables1 = [var for var in tf.trainable_variables() if var.name.startswith("Ge_")]
         saver_restore1 = tf.train.Saver(variables1)
         ckpt1 = tf.train.get_checkpoint_state(TRAIN_DIR1)
@@ -157,11 +154,6 @@ def train():
                 print("**loss_squ_ge: " + str(results["loss_squ_ge"]),
                       "  loss_cro_ge_va: " + str(results["loss_cro_ge"]))
                 print("time per batch is " + str(elapsed))
-
-            # if step % 1000 == 0:
-            #     checkpoint_path = os.path.join(TRAIN_DIR, 'model.ckpt')
-            #     saver.save(sess, checkpoint_path, global_step=results["global_step"])
-            #     print("saved to " + TRAIN_DIR)
 
 
 def main(argv=None):  # pylint: disable=unused-argument
