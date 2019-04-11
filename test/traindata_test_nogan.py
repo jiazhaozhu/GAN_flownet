@@ -1,3 +1,5 @@
+""" use the result of discriminator to evaluate the performance of image generation networks(use gan or FCN)
+"""
 import os.path
 import time
 
@@ -6,14 +8,17 @@ import tensorflow as tf
 
 import sys
 
-sys.path.append('../')
+if __name__=="__main__" and __package__ is None:
+  sys.path.insert(0,os.path.join(os.path.dirname(__file__),'..'))
+  __package__="test"
+
 import model.flow_net as flow_net
 from utils.experiment_manager import make_checkpoint_path
 
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('base_dir', '../checkpoints/10-45104',
-                           """dir to store trained net """)
+                           """dir to store GAN net""")
 tf.app.flags.DEFINE_string('base_dir1', '/home/jzz/cnn/code/Steady-ori/checkpoints',
                            """dir to store trained net """)
 tf.app.flags.DEFINE_integer('batch_size', 8,
@@ -22,10 +27,7 @@ tf.app.flags.DEFINE_integer('max_steps', 300000,
                             """ max number of steps to train """)
 tf.app.flags.DEFINE_float('keep_prob', 0.7,
                           """ keep probability for dropout """)
-tf.app.flags.DEFINE_float('learning_rate_ge', 1e-4,
-                          """ keep probability for dropout """)
-tf.app.flags.DEFINE_float('learning_rate_di', 1e-4,
-                          """ keep probability for dropout """)
+
 
 EPS = 1e-12
 # TRAIN_DIR = make_checkpoint_path(FLAGS.base_dir, FLAGS)
@@ -54,10 +56,6 @@ def train():
                                            staircase=True,
                                            name='lr_ge')
         global_step_op = tf.assign(global_step, global_step + 1)
-
-        # lr_ge = 1e-6
-        tf.summary.scalar('lr_ge', lr_ge)
-        tf.summary.scalar('lr_di', lr_di)
 
         boundary, sflow = flow_net.inputs(FLAGS.batch_size)
         # create and unrap network
