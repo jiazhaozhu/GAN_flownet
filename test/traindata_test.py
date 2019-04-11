@@ -6,13 +6,16 @@ import tensorflow as tf
 
 import sys
 
-sys.path.append('../')
+if __name__=="__main__" and __package__ is None:
+  sys.path.insert(0,os.path.join(os.path.dirname(__file__),'..'))
+  __package__="test"
+ 
 import model.flow_net as flow_net
 from utils.experiment_manager import make_checkpoint_path
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('base_dir', '../checkpoints/10-45104',
+tf.app.flags.DEFINE_string('base_dir', '../checkpoints/',
                            """dir to store trained net """)
 tf.app.flags.DEFINE_integer('batch_size', 8,
                             """ training batch size """)
@@ -20,10 +23,7 @@ tf.app.flags.DEFINE_integer('max_steps', 300000,
                             """ max number of steps to train """)
 tf.app.flags.DEFINE_float('keep_prob', 0.7,
                           """ keep probability for dropout """)
-tf.app.flags.DEFINE_float('learning_rate_ge', 1e-4,
-                          """ keep probability for dropout """)
-tf.app.flags.DEFINE_float('learning_rate_di', 1e-4,
-                          """ keep probability for dropout """)
+
 
 EPS = 1e-12
 # TRAIN_DIR = make_checkpoint_path(FLAGS.base_dir, FLAGS)
@@ -41,21 +41,7 @@ def train():
         # make inputs
         global_step = tf.train.get_or_create_global_step()
 
-        # 学习率每隔1000步降到原有的95%
-        lr_ge = tf.train.exponential_decay(FLAGS.learning_rate_ge, global_step=global_step, decay_steps=100000,
-                                           decay_rate=0.1, staircase=True,
-                                           name='lr_ge')
-
-        lr_di = tf.train.exponential_decay(FLAGS.learning_rate_di, global_step=global_step, decay_steps=50000,
-                                           decay_rate=0.1,
-                                           staircase=True,
-                                           name='lr_ge')
-
         global_step_op = tf.assign(global_step, global_step + 1)
-
-        # lr_ge = 1e-6
-        tf.summary.scalar('lr_ge', lr_ge)
-        tf.summary.scalar('lr_di', lr_di)
 
         boundary, sflow = flow_net.inputs(FLAGS.batch_size)
         # create and unrap network
@@ -84,23 +70,6 @@ def train():
         tf.summary.scalar("loss_cro_ge", loss_cro_ge_ema)
         # loss_dis = tf.reduce_mean(-(tf.square(dis_true -1 + EPS) + tf.log(1 - dis_fake + EPS)))
         tf.summary.scalar("loss_dis", loss_dis_ema)
-
-        # train ge
-        # with tf.name_scope("Ge_train"):
-        #     ge_var = [var for var in tf.trainable_variables() if var.name.startswith("Ge_")]
-        #     # print(tf.trainable_variables().name)
-        #     ge_train_op = tf.train.AdamOptimizer(lr_ge, 0.5)
-        #     ge_gd = ge_train_op.compute_gradients(loss_ge, var_list=ge_var)
-        #     ge_train = ge_train_op.apply_gradients(ge_gd)
-
-            # train dis
-        # with tf.name_scope("Dis_train"):
-        #     with tf.control_dependencies([ge_train]):
-        #         # with tf.control_dependencies([ge_train1]):
-        #         dis_var = [var for var in tf.trainable_variables() if var.name.startswith("Dis_")]
-        #         dis_train_op = tf.train.AdamOptimizer(lr_di, 0.5)
-        #         dis_gd = dis_train_op.compute_gradients(loss_dis, var_list=dis_var)
-        #         dis_train = dis_train_op.apply_gradients(dis_gd, global_step=global_step)
 
         fetches = {"em_loss_op": em_loss_op,
                    "loss_ge": loss_ge,
@@ -165,11 +134,7 @@ def train():
                       "  loss_cro_ge_va: " + str(results["loss_cro_ge"]))
                 print("time per batch is " + str(elapsed))
 
-            # if step % 1000 == 0:
-            #     checkpoint_path = os.path.join(TRAIN_DIR, 'model.ckpt')
-            #     saver.save(sess, checkpoint_path, global_step=results["global_step"])
-            #     print("saved to " + TRAIN_DIR)
-
+      
 
 def main(argv=None):  # pylint: disable=unused-argument
     train()
