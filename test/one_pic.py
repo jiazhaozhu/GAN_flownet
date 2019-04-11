@@ -94,7 +94,7 @@ def evaluate():
                 np.square(sflow_plot[:, :, 0]) + np.square(sflow_plot[:, :, 1])) - .05 * boundary_concat[0, :, :, 0]
             plt.figure()
             # display it
-            plt.imshow(sflow_plot)
+            plt.imshow(sflow_plot,interpolation='gaussian',cmap=plt.cm.jet)
             plt.colorbar()
 
             plt.show()
