@@ -6,11 +6,15 @@ This repository uses Generative Adversarial Networks to improve [Steady-State-Fl
 You can get the train dataset from [here](https://drive.google.com/file/d/0BzsbU65NgrSuZDBMOW93OWpsMHM/view?usp=sharing) and put it to `data` directory. You can get the test dataset from [here](https://drive.google.com/file/d/0BzsbU65NgrSuR2NRRjBRMDVHaDQ/view?usp=sharing) . Unzip it and put it to `data` directory. 
 # Train
 You can run:
-`python train/flow_train.py`
+```Shell
+python train/flow_train.py
+```
 
 # Test 
 You can run:
-`python test/flow_test.py`
+```Shell
+python test/flow_test.py
+```
 
 # Tensorboard
 [Loss_dis](https://github.com/jiazhaozhu/GAN_flownet/blob/master/checkpoints/Loss_dis.jpg)
